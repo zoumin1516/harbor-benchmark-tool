@@ -58,6 +58,15 @@ python3 -m harbor_bench \
   --tag latest \
   --scenarios core,registry-manifest,registry-blob
 
+# 示例：library/busybox（tag latest）
+python3 -m harbor_bench \
+  --duration 180 \
+  --concurrency 60 \
+  --project library \
+  --repository busybox \
+  --tag latest \
+  --scenarios core,registry-manifest
+
 # 机器可读输出（JSON）
 python3 -m harbor_bench --json --duration 60 --concurrency 50
 ```
@@ -105,6 +114,18 @@ python3 -m harbor_bench --scenarios charts --chart-project library --chart-filen
 | `--registry-get-manifest` | `registry-manifest` 在 `HEAD` 之外再 `GET` 完整 manifest |
 | `--insecure` | 跳过 TLS 证书校验 |
 | `--json` | 仅打印 JSON 结果到标准输出 |
+
+### duration / concurrency 与请求量换算
+
+- `--duration`：每个场景运行的总时长（秒）。工具内部用 `stop_at = now + duration` 控制循环何时停止。
+- `--concurrency`：每个场景同时启动的并发协程数量；每个协程在循环里每个节拍发起 **1 次“回合”请求**，然后把该回合耗时和成功/失败记录到统计里。
+- `requests_total`：工具输出的“总请求数/总回合数”，来源于 `LatencyRecorder.record()` 的调用次数，即 `ok + err`。它统计的是回合数；如果你开启了 `--registry-get-manifest`，单个回合会包含 `HEAD` + `GET` 两次 HTTP，但 `requests_total` 仍只会 +1。
+- `--rps`：
+  - 当 `--rps = R > 0` 时，每个并发协程会按节拍发送请求（间隔约 `1/R` 秒）。此时可以用期望值估算：`requests_total ~= concurrency * R * duration`（实际会有少量偏差）。
+  - 当 `--rps = 0`（默认，不限速）时，客户端不做节拍限制；最终 `requests_total` 取决于目标站点响应速度、网络与错误情况，因此启动前无法精确预估，只能根据运行输出的 `requests_total` 或 `qps` 换算。
+- 换算关系（工具内置计算逻辑）：`qps = requests_total / duration_s`，因此也可用 `requests_total = qps * duration_s` 得到最终请求量。
+
+例如（仅估算用）：如果你把 `--rps` 设为 `500`（req/s/并发协程），`duration=180`、`concurrency=60`，则期望 `requests_total ~= 60 * 500 * 180 = 5,400,000`（按回合统计）。
 
 查看全部帮助：
 
