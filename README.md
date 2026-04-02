@@ -195,4 +195,4 @@ harbor-benchmark-tool/
 
 ## 许可证
 
-未随仓库指定默认许可证时，请以你所在组织的合规要求为准；如需开源发布，请自行补充 `LICENSE` 文件。
+License: MIT。全文见仓库根目录 [`LICENSE`](LICENSE)。
