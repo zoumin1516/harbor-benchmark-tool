@@ -160,8 +160,25 @@ def build_parser() -> argparse.ArgumentParser:
         default=_env("HARBOR_SCENARIOS", "core,registry-manifest"),
         help="逗号分隔：core,registry-manifest,registry-blob,charts",
     )
-    p.add_argument("--duration", type=float, default=float(_env("HARBOR_DURATION", "30") or "30"))
-    p.add_argument("--concurrency", type=int, default=int(_env("HARBOR_CONCURRENCY", "20") or "20"))
+    p.add_argument(
+        "--duration",
+        type=float,
+        default=float(_env("HARBOR_DURATION", "30") or "30"),
+        help=(
+            "每个场景的压测时长（秒，可小数）。到点后各场景 worker 停止循环；"
+            "输出中的 QPS = 该场景 requests_total / duration（见 README）。"
+        ),
+    )
+    p.add_argument(
+        "--concurrency",
+        type=int,
+        default=int(_env("HARBOR_CONCURRENCY", "20") or "20"),
+        help=(
+            "每个场景同时启动的并发协程数（各场景独立一组，互不影响）。"
+            "表示「同时有多少个 worker 在跑」，不是「每秒请求数」；"
+            "实际 QPS 由服务端响应、网络与可选 --rps 限速共同决定。"
+        ),
+    )
     p.add_argument(
         "--rps",
         type=float,
